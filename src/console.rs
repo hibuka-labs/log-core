@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 
 use crate::{LogEntry, LogLevel, LogSink};
 
@@ -41,8 +41,9 @@ impl LogSink for ConsoleSink {
             LogLevel::Debug => format!("\x1b[90m{}\x1b[0m", line),
             LogLevel::Info => line,
         };
-        let mut stderr = std::io::stderr().lock();
-        writeln!(stderr, "{}", colored)?;
+        let mut stderr = tokio::io::stderr();
+        stderr.write_all(colored.as_bytes()).await?;
+        stderr.write_all(b"\n").await?;
         Ok(())
     }
 }

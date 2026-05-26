@@ -6,7 +6,7 @@ use crate::LogLevel;
 #[derive(Clone, Debug)]
 pub struct LogEntry {
     pub level: LogLevel,
-    pub module: &'static str,
+    pub module: String,
     pub message: String,
     pub timestamp: DateTime<Utc>,
     pub context: Value,
@@ -16,13 +16,13 @@ pub struct LogEntry {
 impl LogEntry {
     pub fn new(
         level: LogLevel,
-        module: &'static str,
+        module: impl Into<String>,
         message: impl Into<String>,
         context: Value,
     ) -> Self {
         Self {
             level,
-            module,
+            module: module.into(),
             message: message.into(),
             timestamp: Utc::now(),
             context,

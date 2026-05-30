@@ -12,4 +12,4 @@ pub use sink::LogSink;
 pub use logger::{Logger, LoggerBuilder};
 pub use console::ConsoleSink;
 pub use file::FileSink;
-pub use tracing_layer::LogCoreLayer;
+pub use tracing_layer::{LogCoreLayer, SinkHandle};

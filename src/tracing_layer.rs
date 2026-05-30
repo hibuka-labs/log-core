@@ -2,6 +2,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use serde_json::{Map, Value};
+use tokio::sync::RwLock;
 use tracing::field::Visit;
 use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
@@ -9,15 +10,28 @@ use tracing_subscriber::Layer;
 
 use crate::{ConsoleSink, FileSink, LogEntry, LogLevel, LogSink};
 
+/// A handle that can add sinks to a [`LogCoreLayer`] at runtime.
+///
+/// Obtained via [`LogCoreLayer::sink_handle()`].
+#[derive(Clone)]
+pub struct SinkHandle(Arc<RwLock<Vec<Box<dyn LogSink>>>>);
+
+impl SinkHandle {
+    /// Add a new sink. All subsequent log events will be written to it.
+    pub async fn add_sink(&self, sink: Box<dyn LogSink>) {
+        self.0.write().await.push(sink);
+    }
+}
+
 pub struct LogCoreLayer {
-    sinks: Arc<Vec<Box<dyn LogSink>>>,
+    sinks: Arc<RwLock<Vec<Box<dyn LogSink>>>>,
     min_level: LogLevel,
 }
 
 impl LogCoreLayer {
     pub fn new(sinks: Vec<Box<dyn LogSink>>, min_level: LogLevel) -> Self {
         Self {
-            sinks: Arc::new(sinks),
+            sinks: Arc::new(RwLock::new(sinks)),
             min_level,
         }
     }
@@ -37,6 +51,11 @@ impl LogCoreLayer {
             vec![Box::new(ConsoleSink::new()), Box::new(file_sink)],
             min_level,
         ))
+    }
+
+    /// Get a handle that can add sinks at runtime.
+    pub fn sink_handle(&self) -> SinkHandle {
+        SinkHandle(self.sinks.clone())
     }
 }
 
@@ -76,7 +95,8 @@ where
 
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             handle.spawn(async move {
-                for sink in sinks.iter() {
+                let guard = sinks.read().await;
+                for sink in guard.iter() {
                     let _ = sink.write(&entry).await;
                 }
             });

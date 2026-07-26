@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use serde_json::Value;
 
 use crate::LogLevel;
@@ -8,7 +8,7 @@ pub struct LogEntry {
     pub level: LogLevel,
     pub module: String,
     pub message: String,
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Local>,
     pub context: Value,
     pub session_id: Option<String>,
 }
@@ -24,7 +24,7 @@ impl LogEntry {
             level,
             module: module.into(),
             message: message.into(),
-            timestamp: Utc::now(),
+            timestamp: Local::now(),
             context,
             session_id: None,
         }

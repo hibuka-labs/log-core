@@ -2,6 +2,12 @@
 name = "log-core"
 version = "0.1.0"
 edition = "2024"
+description = "Unified logging foundation — LogSink trait + Logger combinator with terminal, file, and cloud backends"
+license = "MIT"
+repository = "https://github.com/chenkangzeng1/log-core"
+readme = "README.md"
+keywords = ["logging", "sink", "file", "console", "tracing"]
+categories = ["development-tools", "asynchronous"]
 
 [dependencies]
 anyhow = "1"

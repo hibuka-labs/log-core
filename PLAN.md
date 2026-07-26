@@ -1,39 +1,39 @@
-# log-core 实现计划
+# log-core Implementation Plan
 
-## 1. 定位
+## 1. Purpose
 
-统一日志底座。提供 `LogSink` trait + `Logger` 组合器，支持多种后端（终端 / 文件 / 云端 / 组合），调用方不感知底层输出目标。
+Unified logging foundation. Provides a `LogSink` trait + `Logger` combinator supporting multiple backends (terminal / file / cloud / composite), so callers don't need to know the underlying output target.
 
 ```
 ops-agent / agent-core / db-agent
             │
             ▼
-        Logger（组合多个 LogSink）
+        Logger (composes multiple LogSinks)
             │
     ┌───────┼────────┐
     ▼       ▼        ▼
-ConsoleSink  FileSink  CloudSink（后续实现）
+ConsoleSink  FileSink  CloudSink (future)
 ```
 
-和 data-core 同一模式：**trait 定义在 log-core，业务 crate 只依赖 trait**。
+Same pattern as data-core: **trait defined in log-core, business crates only depend on the trait**.
 
-## 2. Crate 结构
+## 2. Crate Structure
 
 ```
 log-core/
 ├── Cargo.toml
 └── src/
     ├── lib.rs            # pub mod + re-export
-    ├── level.rs          # LogLevel 枚举
-    ├── entry.rs          # LogEntry 结构体
+    ├── level.rs          # LogLevel enum
+    ├── entry.rs          # LogEntry struct
     ├── sink.rs           # LogSink trait
-    ├── logger.rs         # Logger 组合器 (Builder)
-    ├── console.rs        # ConsoleSink — stderr 输出
-    ├── file.rs           # FileSink — 滚动文件写入
-    └── composite.rs      # CompositeSink — 组合多个 sink
+    ├── logger.rs         # Logger combinator (Builder)
+    ├── console.rs        # ConsoleSink — stderr output
+    ├── file.rs           # FileSink — rolling file writer
+    └── composite.rs      # CompositeSink — compose multiple sinks
 ```
 
-### 2.1 依赖
+### 2.1 Dependencies
 
 ```toml
 [dependencies]
@@ -48,31 +48,31 @@ tokio = { version = "=1.52.2", features = ["full"] }
 tempfile = "3"
 ```
 
-| 依赖 | 用途 |
-|------|------|
-| `chrono` | 时间戳 |
-| `tokio` | 异步写文件、后续 HTTP 上传 |
-| 其他 | 同 data-core |
+| Dependency | Purpose |
+|------------|---------|
+| `chrono` | Timestamps |
+| `tokio` | Async file writes, future HTTP uploads |
+| Other | Same as data-core |
 
-### 2.2 文件滚动方案
+### 2.2 File Rolling Strategy
 
-不引入第三方 rolling 库，自己实现最简单的方案：
+No third-party rolling library — implement the simplest approach:
 
-- 文件名 `ops.log`
-- 超过 `max_size`（默认 10MB）时 rename 为 `ops.1.log`
-- 保留最近 N 个归档文件（默认 5 个）
+- File name `ops.log`
+- When exceeding `max_size` (default 10 MB), rename to `ops.1.log`
+- Keep the most recent N archive files (default 5)
 
-## 3. 类型设计
+## 3. Type Design
 
 ### 3.1 LogLevel
 
 ```rust
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
-    Debug,   // 纯开发调试
-    Info,    // 正常运行时信息
-    Warn,    // 非预期但可恢复
-    Error,   // 影响用户
+    Debug,   // Development debugging only
+    Info,    // Normal runtime information
+    Warn,    // Unexpected but recoverable
+    Error,   // Affects users
 }
 ```
 
@@ -95,17 +95,17 @@ pub struct LogEntry {
 ```rust
 #[async_trait]
 pub trait LogSink: Send + Sync {
-    /// 写入一条日志
+    /// Write a log entry
     async fn write(&self, entry: &LogEntry) -> anyhow::Result<()>;
 
-    /// 刷新缓冲区（文件 sink 需要，终端 sink 可以空实现）
+    /// Flush buffer (needed by file sink; console sink can be a no-op)
     async fn flush(&self) -> anyhow::Result<()> {
         Ok(())
     }
 }
 ```
 
-## 4. Logger 组合器
+## 4. Logger Combinator
 
 ```rust
 pub struct Logger {
@@ -130,7 +130,7 @@ impl Logger {
         }
     }
 
-    // 便捷方法
+    // Convenience methods
     pub async fn debug(&self, module: &'static str, msg: &str, ctx: Value) { ... }
     pub async fn info(&self, module: &'static str, msg: &str, ctx: Value)  { ... }
     pub async fn warn(&self, module: &'static str, msg: &str, ctx: Value)  { ... }
@@ -156,14 +156,14 @@ impl LoggerBuilder {
 }
 ```
 
-## 5. 三（四）个 Sink 实现
+## 5. Three (Four) Sink Implementations
 
 ### 5.1 ConsoleSink
 
 ```rust
-// 用 eprintln! 写 stderr，加颜色
-// Debug → 灰色，Info → 默认，Warn → 黄色，Error → 红色
-// 格式：[2026-05-13 14:30:00] [WARN] [agent::runtime] message {json context}
+// Write to stderr via eprintln!, with colors
+// Debug → gray, Info → default, Warn → yellow, Error → red
+// Format: [2026-05-13 14:30:00] [WARN] [agent::runtime] message {json context}
 
 pub struct ConsoleSink;
 ```
@@ -172,8 +172,8 @@ pub struct ConsoleSink;
 
 ```rust
 pub struct FileSink {
-    // 内部：tokio::sync::Mutex<File>
-    // 滚动逻辑：写入前检查大小，超限时 rotate
+    // Internal: tokio::sync::Mutex<File>
+    // Rolling logic: check size before write, rotate if exceeded
 }
 
 impl FileSink {
@@ -181,31 +181,31 @@ impl FileSink {
 }
 ```
 
-### 5.3 CloudSink（二期实现）
+### 5.3 CloudSink (Phase 2)
 
-调用方**不感知**背后是哪家云服务。只配置 URL + Key，log-core 内部统一处理。
+Callers **don't know which cloud provider** is behind it. Just configure URL + Key — log-core handles everything internally.
 
-环境变量约定（`.env`）：
+Environment variable convention (`.env`):
 
 ```bash
 LOG_CLOUD_URL=https://your-log-service.com/api/v1/logs
 LOG_CLOUD_KEY=sk-xxxxxxxx
-LOG_CLOUD_MIN_LEVEL=warn     # debug/info/warn/error，默认 warn
+LOG_CLOUD_MIN_LEVEL=warn     # debug/info/warn/error, default warn
 ```
 
-两种使用方式：
+Two usage modes:
 
 ```rust
-// 方式 1：零参数，全部从环境变量读
+// Mode 1: zero args — all from environment variables
 Logger::builder().console().file("ops.log").cloud().build();
 
-// 方式 2：显式传参（适合不依赖 env 的场景）
+// Mode 2: explicit args (for env-less scenarios)
 Logger::builder().console().file("ops.log")
     .cloud_with("https://log.example.com/v1/ingest", "api-key-xxx", LogLevel::Warn)
     .build();
 ```
 
-CloudSink 内部结构：
+CloudSink internals:
 
 ```rust
 pub struct CloudSink {
@@ -217,29 +217,29 @@ pub struct CloudSink {
 }
 
 impl CloudSink {
-    /// 从环境变量创建，如果没配则返回 None（表示不上云）
+    /// Create from env vars; returns None if not configured (no cloud upload)
     pub fn from_env() -> Option<Self>;
 
-    /// 显式创建
+    /// Explicit creation
     pub fn new(api_url: String, api_key: String, min_level: LogLevel) -> Self;
 }
 ```
 
-上报逻辑：
-1. `write()` 时如果 level >= min_level，加入缓冲队列
-2. 异步批量 POST 到 api_url（批量大小可配，默认 50 条或每 5 秒）
-3. 支持重试（最多 3 次，指数退避）
-4. 失败则丢弃，不影响本地日志
+Upload logic:
+1. On `write()`, if level >= min_level, add to buffer queue
+2. Async batch POST to api_url (batch size configurable, default 50 entries or every 5 seconds)
+3. Retry support (max 3 attempts, exponential backoff)
+4. Discard on failure — does not affect local logging
 
 ### 5.4 CompositeSink
 
 ```rust
-// 实际就是 Logger 的内核 —— Logger 本质就是一个 CompositeSink
-// 所以不需要单独的 CompositeSink 类型
-// Logger 本身就是组合器，调用方直接 Logger::builder().console().file(...).build()
+// Essentially the kernel of Logger — Logger IS a CompositeSink
+// So no separate CompositeSink type is needed
+// Logger itself is the combinator: Logger::builder().console().file(...).build()
 ```
 
-## 6. lib.rs 导出
+## 6. lib.rs Exports
 
 ```rust
 pub use level::LogLevel;
@@ -251,50 +251,50 @@ pub use file::FileSink;
 pub use cloud::CloudSink;
 ```
 
-## 7. 业务层使用示例
+## 7. Business-Layer Usage Examples
 
 ```rust
 use log_core::{Logger, LogLevel};
 use serde_json::json;
 
-// 开发环境 — 只输出终端
+// Development — terminal only
 let logger = Logger::builder()
     .console()
     .min_level(LogLevel::Debug)
     .build();
 
-// 产品环境 — 终端 + 文件
+// Production — terminal + file
 let logger = Logger::builder()
     .console()
     .file("ops.log")
     .min_level(LogLevel::Info)
     .build();
 
-// 产品 + 云端上报 — 从 .env 自动读取配置
+// Production + cloud — auto-read from .env
 // .env:  LOG_CLOUD_URL=... LOG_CLOUD_KEY=...
 let logger = Logger::builder()
     .console()
     .file("ops.log")
-    .cloud()                        // ← 零参数，全部从环境变量读
+    .cloud()                        // ← zero args, all from env
     .min_level(LogLevel::Info)
     .build();
 
-// 使用
+// Usage
 logger.info("agent::runtime", "session created", json!({"session_id": 1}));
 logger.warn("agent::ssh", "connection timed out", json!({"host": "1.2.3.4", "timeout_ms": 8000}));
 logger.error("agent::plan", "step execution failed", json!({"step": 3, "error": "permission denied"}));
 
-// 也支持 plain message（无 context 时传 null）
+// Also supports plain message (pass null when no context)
 logger.info("agent::runtime", "agent started", json!(null));
 ```
 
-## 8. agent-core 集成方式
+## 8. agent-core Integration
 
-agent-core **不需要依赖 log-core**。集成点有两种：
+agent-core **does not need to depend on log-core**. Two integration points:
 
-### 方案 A（推荐）：agent-core 不感知日志
+### Option A (recommended): agent-core is log-agnostic
 
-agent-core 零变更。ops-agent 在 `run_turn_with_handler` 前后自行打日志：
+Zero changes to agent-core. ops-agent logs before/after `run_turn_with_handler`:
 
 ```rust
 logger.info("agent", "turn start", json!({"session_id": id, "input": input}));
@@ -302,34 +302,34 @@ runtime.run_turn_with_handler(id, input, handler).await?;
 logger.info("agent", "turn complete", json!({"session_id": id}));
 ```
 
-### 方案 B：agent-core 接受 Option<Logger>
+### Option B: agent-core accepts Option<Logger>
 
-agent-core 的 `AgentConfig` 加一个可选的 `logger: Option<Arc<Logger>>`。如果提供了，runtime 内部自动在关键节点打日志。不提供就不打。
+Add optional `logger: Option<Arc<Logger>>` to agent-core's `AgentConfig`. If provided, runtime auto-logs at key points internally.
 
-**推荐 A**，保持 agent-core 零依赖。
+**Recommend A**, keeping agent-core zero-dependency.
 
-## 9. 云端上报（二期）
+## 9. Cloud Upload (Phase 2)
 
-### 设计原则
+### Design Principle
 
-**调用方不感知云厂商**。配置是运维的事，写在 `.env` 里。log-core 内部读环境变量或接受显式参数，统一 HTTP POST 上报。
+**Callers are cloud-provider-agnostic**. Configuration is an ops concern, set in `.env`. log-core reads env vars or accepts explicit params, handles HTTP POST uniformly.
 
-| 调用方要做的 | 调用方不需要做的 |
-|-------------|----------------|
-| `.cloud()` 一行 | 不用管是阿里云 SLS 还是腾讯云 CLS |
-| 在 `.env` 配 `LOG_CLOUD_URL` / `LOG_CLOUD_KEY` | 不用管上报格式、重试、批量策略 |
+| Caller's responsibility | Not caller's responsibility |
+|-------------------------|----------------------------|
+| `.cloud()` — one line | Which cloud provider (Aliyun SLS / Tencent CLS / ...) |
+| Set `LOG_CLOUD_URL` / `LOG_CLOUD_KEY` in `.env` | Upload format, retry, batching strategy |
 
-### Builder 接口
+### Builder Interface
 
 ```rust
-// 零参数 — 全部从环境变量自动读取
+// Zero args — all from env
 Logger::builder().cloud().build();
 
-// 显式传参
+// Explicit args
 Logger::builder().cloud_with(url, key, level).build();
 ```
 
-Builder 里 `.cloud()` 内部调用 `CloudSink::from_env()`：
+Inside Builder, `.cloud()` calls `CloudSink::from_env()`:
 
 ```rust
 impl CloudSink {
@@ -350,17 +350,17 @@ impl CloudSink {
 }
 ```
 
-如果环境变量没配，`from_env()` 返回 `None`，`.cloud()` 就跳过不添加这个 sink（不上云）。
+If env vars are not set, `from_env()` returns `None`, and `.cloud()` skips adding this sink (no cloud upload).
 
-### CloudSink 内部行为
+### CloudSink Internal Behavior
 
-1. `write()` 时如果 `level >= min_level`，加入缓冲队列
-2. 异步批量 POST 到 api_url（批量大小可配，默认 50 条或每 5 秒）
-3. 支持重试（最多 3 次，指数退避）
-4. 请求体为标准 JSON 数组 `[{...entry...}]`
-5. 失败则丢弃，不影响本地日志（不阻塞业务）
+1. On `write()`, if level >= min_level, add to buffer queue
+2. Async batch POST to api_url (batch size configurable, default 50 entries or every 5 seconds)
+3. Retry support (max 3 attempts, exponential backoff)
+4. Request body: standard JSON array `[{...entry...}]`
+5. Discard on failure — does not block business logic
 
-## 10. 终端输出格式
+## 10. Terminal Output Format
 
 ```
 [2026-05-13 14:30:01] [INFO]  [agent::runtime] session created {"session_id":1}
@@ -368,14 +368,14 @@ impl CloudSink {
 [2026-05-13 14:30:10] [ERROR] [agent::plan]    step execution failed {"step":3,"error":"..."}
 ```
 
-## 11. 实现顺序
+## 11. Implementation Order
 
-1. **level.rs** — `LogLevel` 枚举
-2. **entry.rs** — `LogEntry` 结构体
+1. **level.rs** — `LogLevel` enum
+2. **entry.rs** — `LogEntry` struct
 3. **sink.rs** — `LogSink` trait
 4. **console.rs** — `ConsoleSink`
 5. **file.rs** — `FileSink`
 6. **logger.rs** — `Logger` + `LoggerBuilder`
-7. **lib.rs** — 模块导出
-8. **Cargo.toml** — 依赖配置
-9. **cargo check + test** — 验证编译
+7. **lib.rs** — Module exports
+8. **Cargo.toml** — Dependency config
+9. **cargo check + test** — Verify compilation

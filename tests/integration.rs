@@ -53,17 +53,47 @@ async fn test_realistic_logger_usage() {
         .build();
 
     // ------ 模拟正常运行 ------
-    logger.info("agent::session", "session created", json!({"session_id": 1})).await;
-    logger.info("agent::ssh", "connected to server", json!({"host": "192.168.1.1", "latency_ms": 15})).await;
+    logger
+        .info(
+            "agent::session",
+            "session created",
+            json!({"session_id": 1}),
+        )
+        .await;
+    logger
+        .info(
+            "agent::ssh",
+            "connected to server",
+            json!({"host": "192.168.1.1", "latency_ms": 15}),
+        )
+        .await;
 
     // ------ 模拟警告 ------
-    logger.warn("agent::ssh", "connection slow", json!({"host": "192.168.1.1", "latency_ms": 2500})).await;
+    logger
+        .warn(
+            "agent::ssh",
+            "connection slow",
+            json!({"host": "192.168.1.1", "latency_ms": 2500}),
+        )
+        .await;
 
     // ------ 模拟错误 ------
-    logger.error("agent::plan", "step execution failed", json!({"step": 3, "error": "permission denied", "command": "systemctl restart nginx"})).await;
+    logger
+        .error(
+            "agent::plan",
+            "step execution failed",
+            json!({"step": 3, "error": "permission denied", "command": "systemctl restart nginx"}),
+        )
+        .await;
 
     // ------ Debug 被 min_level 过滤掉 ------
-    logger.debug("agent::internal", "debug info", json!({"detail": "should not appear"})).await;
+    logger
+        .debug(
+            "agent::internal",
+            "debug info",
+            json!({"detail": "should not appear"}),
+        )
+        .await;
 
     // 验证所有日志都到了本地文件
     {

@@ -22,11 +22,7 @@ impl ConsoleSink {
 
         format!(
             "[{}] [{:5}] [{}] {}{}",
-            timestamp,
-            entry.level,
-            entry.module,
-            entry.message,
-            context_str
+            timestamp, entry.level, entry.module, entry.message, context_str
         )
     }
 }

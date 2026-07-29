@@ -43,7 +43,12 @@ mod tests {
 
     #[test]
     fn test_new_entry() {
-        let entry = LogEntry::new(LogLevel::Info, "test::module", "hello", json!({"key": "value"}));
+        let entry = LogEntry::new(
+            LogLevel::Info,
+            "test::module",
+            "hello",
+            json!({"key": "value"}),
+        );
         assert_eq!(entry.level, LogLevel::Info);
         assert_eq!(entry.module, "test::module");
         assert_eq!(entry.message, "hello");

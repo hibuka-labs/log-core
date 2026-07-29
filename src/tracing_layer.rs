@@ -4,9 +4,9 @@ use std::sync::Arc;
 use serde_json::{Map, Value};
 use tokio::sync::RwLock;
 use tracing::field::Visit;
+use tracing_subscriber::Layer;
 use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::Layer;
 
 use crate::{ConsoleSink, FileSink, LogEntry, LogLevel, LogSink};
 
@@ -135,13 +135,17 @@ impl Visit for JsonVisitor {
     }
 
     fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
-        self.fields
-            .insert(field.name().to_string(), Value::Number(serde_json::Number::from(value)));
+        self.fields.insert(
+            field.name().to_string(),
+            Value::Number(serde_json::Number::from(value)),
+        );
     }
 
     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-        self.fields
-            .insert(field.name().to_string(), Value::Number(serde_json::Number::from(value)));
+        self.fields.insert(
+            field.name().to_string(),
+            Value::Number(serde_json::Number::from(value)),
+        );
     }
 
     fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {

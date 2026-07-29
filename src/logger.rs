@@ -12,7 +12,13 @@ impl Logger {
         LoggerBuilder::new()
     }
 
-    pub async fn log(&self, level: LogLevel, module: &'static str, message: impl Into<String>, context: Value) {
+    pub async fn log(
+        &self,
+        level: LogLevel,
+        module: &'static str,
+        message: impl Into<String>,
+        context: Value,
+    ) {
         if level < self.min_level {
             return;
         }
@@ -106,7 +112,9 @@ mod tests {
             .build();
 
         // debug should be filtered out, this should not panic
-        logger.debug("test", "this should be filtered", json!(null)).await;
+        logger
+            .debug("test", "this should be filtered", json!(null))
+            .await;
     }
 
     #[tokio::test]
@@ -126,13 +134,15 @@ mod tests {
             .min_level(LogLevel::Debug)
             .build();
 
-        logger.log(LogLevel::Warn, "test", "direct log call", json!({"key": 1})).await;
+        logger
+            .log(LogLevel::Warn, "test", "direct log call", json!({"key": 1}))
+            .await;
     }
 
     #[tokio::test]
     async fn test_custom_sink() {
-        use std::sync::Arc;
         use async_trait::async_trait;
+        use std::sync::Arc;
         use tokio::sync::Mutex;
 
         struct MockSink {
@@ -148,11 +158,11 @@ mod tests {
         }
 
         let entries = Arc::new(Mutex::new(Vec::new()));
-        let mock = MockSink { entries: entries.clone() };
+        let mock = MockSink {
+            entries: entries.clone(),
+        };
 
-        let logger = Logger::builder()
-            .sink(Box::new(mock))
-            .build();
+        let logger = Logger::builder().sink(Box::new(mock)).build();
 
         logger.info("test", "mock entry", json!(null)).await;
         logger.warn("test", "warning", json!(null)).await;
@@ -165,8 +175,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_all_log_levels() {
-        use std::sync::Arc;
         use async_trait::async_trait;
+        use std::sync::Arc;
         use tokio::sync::Mutex;
 
         struct MockSink {
@@ -182,7 +192,9 @@ mod tests {
         }
 
         let entries = Arc::new(Mutex::new(Vec::new()));
-        let mock = MockSink { entries: entries.clone() };
+        let mock = MockSink {
+            entries: entries.clone(),
+        };
 
         let logger = Logger::builder()
             .sink(Box::new(mock))

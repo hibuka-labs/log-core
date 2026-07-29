@@ -59,11 +59,7 @@ impl FileSink {
 
         format!(
             "[{}] [{:5}] [{}] {}{}\n",
-            timestamp,
-            entry.level,
-            entry.module,
-            entry.message,
-            context_str
+            timestamp, entry.level, entry.module, entry.message, context_str
         )
     }
 
@@ -184,7 +180,12 @@ mod tests {
         // max_size = 10 bytes, triggers rotate on second write
         let sink = FileSink::with_config(&path, 10, 3).await.unwrap();
 
-        let entry = LogEntry::new(LogLevel::Info, "mod", "hello world this is a long message", json!(null));
+        let entry = LogEntry::new(
+            LogLevel::Info,
+            "mod",
+            "hello world this is a long message",
+            json!(null),
+        );
         sink.write(&entry).await.unwrap();
         sink.write(&entry).await.unwrap();
         sink.flush().await.unwrap();

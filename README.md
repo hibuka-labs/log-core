@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/log-core.svg)](https://crates.io/crates/log-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/hibuka-labs/log-core/branch/master/graph/badge.svg)](https://codecov.io/gh/hibuka-labs/log-core)
 
 Unified logging foundation. Provides a `LogSink` trait + `Logger` combinator with support for terminal, file, and cloud backends.
 

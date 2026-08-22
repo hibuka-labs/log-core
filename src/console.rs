@@ -5,6 +5,12 @@ use crate::{LogEntry, LogLevel, LogSink};
 
 pub struct ConsoleSink;
 
+impl Default for ConsoleSink {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConsoleSink {
     pub fn new() -> Self {
         Self

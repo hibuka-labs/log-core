@@ -21,6 +21,14 @@ impl SinkHandle {
     pub async fn add_sink(&self, sink: Box<dyn LogSink>) {
         self.0.write().await.push(sink);
     }
+
+    /// Replace the entire sink set. Subsequent log events go only to the new
+    /// sinks — used to re-point a file sink at a different session directory
+    /// without re-initializing the global tracing subscriber (which can only
+    /// be set once per process).
+    pub async fn replace_sinks(&self, sinks: Vec<Box<dyn LogSink>>) {
+        *self.0.write().await = sinks;
+    }
 }
 
 pub struct LogCoreLayer {

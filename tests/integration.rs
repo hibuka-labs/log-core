@@ -5,7 +5,7 @@ use log_core::{LogEntry, LogLevel, LogSink, Logger};
 use serde_json::json;
 use tokio::sync::Mutex;
 
-/// 模拟云上报的 sink —— 收集 >= Warn 的日志
+/// Mock cloud-reporting sink — collects logs >= Warn
 struct MockCloudSink {
     uploaded: Arc<Mutex<Vec<LogEntry>>>,
 }
@@ -20,7 +20,7 @@ impl LogSink for MockCloudSink {
     }
 }
 
-/// 模拟本地文件 sink —— 收集全部日志
+/// Mock local-file sink — collects all logs
 struct MockFileSink {
     entries: Arc<Mutex<Vec<LogEntry>>>,
 }
@@ -35,7 +35,7 @@ impl LogSink for MockFileSink {
 
 #[tokio::test]
 async fn test_realistic_logger_usage() {
-    // 模拟：产品环境的 Logger = 本地文件 + 云端上报（>=Warn）
+    // Simulated: the product-environment Logger = local file + cloud upload (>=Warn)
     let uploaded = Arc::new(Mutex::new(Vec::new()));
     let file_entries = Arc::new(Mutex::new(Vec::new()));
 
@@ -52,7 +52,7 @@ async fn test_realistic_logger_usage() {
         .min_level(LogLevel::Info)
         .build();
 
-    // ------ 模拟正常运行 ------
+    // ------ Simulated normal operation ------
     logger
         .info(
             "agent::session",
@@ -68,7 +68,7 @@ async fn test_realistic_logger_usage() {
         )
         .await;
 
-    // ------ 模拟警告 ------
+    // ------ Simulated warning ------
     logger
         .warn(
             "agent::ssh",
@@ -77,7 +77,7 @@ async fn test_realistic_logger_usage() {
         )
         .await;
 
-    // ------ 模拟错误 ------
+    // ------ Simulated error ------
     logger
         .error(
             "agent::plan",
@@ -86,7 +86,7 @@ async fn test_realistic_logger_usage() {
         )
         .await;
 
-    // ------ Debug 被 min_level 过滤掉 ------
+    // ------ Debug filtered out by min_level ------
     logger
         .debug(
             "agent::internal",
@@ -95,7 +95,7 @@ async fn test_realistic_logger_usage() {
         )
         .await;
 
-    // 验证所有日志都到了本地文件
+    // Verify all logs reached the local file
     {
         let entries = file_entries.lock().await;
         assert_eq!(entries.len(), 4, "file should have all 4 entries");
@@ -105,7 +105,7 @@ async fn test_realistic_logger_usage() {
         assert_eq!(entries[3].level, LogLevel::Error);
     }
 
-    // 验证只有 Warn + Error 上传到了云端
+    // Verify only Warn + Error were uploaded to the cloud
     {
         let up = uploaded.lock().await;
         assert_eq!(up.len(), 2, "cloud should only have warn+error");

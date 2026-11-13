@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-14
+
+### Changed
+- Integration-test comments are now in English, matching the rest of the
+  workspace's comment convention. Test code only — no API change.
+
 ## [0.1.4] - 2026-10-07
 
 ### Added

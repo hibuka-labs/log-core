@@ -1,7 +1,7 @@
 # log-core
 
 [![Crates.io](https://img.shields.io/crates/v/log-core.svg)](https://crates.io/crates/log-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
 
 统一日志底座。提供 `LogSink` trait + `Logger` 组合器，支持终端 / 文件 / 云端等多种输出目标。
 
@@ -51,4 +51,4 @@ tracing_subscriber::registry()
 
 ## License
 
-MIT
+MIT OR Apache-2.0（见 [LICENSE-MIT](LICENSE-MIT) 与 [LICENSE-APACHE](LICENSE-APACHE)）。

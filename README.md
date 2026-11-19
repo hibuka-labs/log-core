@@ -1,7 +1,7 @@
 # log-core
 
 [![Crates.io](https://img.shields.io/crates/v/log-core.svg)](https://crates.io/crates/log-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-MIT)
 [![codecov](https://codecov.io/gh/hibuka-labs/log-core/branch/master/graph/badge.svg)](https://codecov.io/gh/hibuka-labs/log-core)
 
 Unified logging foundation. Provides a `LogSink` trait + `Logger` combinator with support for terminal, file, and cloud backends.
@@ -52,6 +52,6 @@ tracing_subscriber::registry()
 
 ## License
 
-MIT
+MIT OR Apache-2.0 — see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
 
 [中文文档](README_CN.md)
